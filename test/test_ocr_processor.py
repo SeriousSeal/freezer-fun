@@ -7,7 +7,7 @@ class TestOCRProcessor(unittest.TestCase):
         # Create a test images directory if it doesn't exist
         self.test_dir = os.path.dirname(os.path.abspath(__file__))
         self.test_images_dir = os.path.join(self.test_dir, "test_images")
-        self.test_image_path = os.path.join(self.test_images_dir, "test_text.jpg")
+        self.test_image_path = os.path.join(self.test_images_dir, "test.jpg")
     
         # Verify test image exists
         self.assertTrue(os.path.exists(self.test_image_path), 
@@ -17,7 +17,7 @@ class TestOCRProcessor(unittest.TestCase):
 
     def test_process_image(self):
         # Test with a known image containing text
-        test_image_path = os.path.join(self.test_images_dir, "test_text.jpg")
+        test_image_path = os.path.join(self.test_images_dir, "test.jpg")
         
         # Create a test image if needed
         # You should add a real test image file with known text
