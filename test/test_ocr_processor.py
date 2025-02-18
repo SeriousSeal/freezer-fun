@@ -44,7 +44,7 @@ class TestOCRProcessor(unittest.TestCase):
             print(f"\n{size.capitalize()} Text ({len(magnets)} elements):")
             print("-" * 40)
             for m in magnets:
-                print(f"Text: '{m['text']}' (height: {m['position']['height']}px)")
+                print(f"Text: '{m['text']}'(confidence: {m['confidence']}) (height: {m['position']['height']}px)")
  
         
         # Assertions
