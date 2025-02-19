@@ -3,14 +3,20 @@ import cv2
 import os
 import numpy as np
 
-def quarter_image(image):
+def quarter_image_with_padding(image, pad=40):
     h, w = image.shape[:2]
-    rois = [
-        (0, 0, w//2, h//2),
-        (w//2, 0, w - w//2, h//2),
-        (0, h//2, w//2, h - h//2),
-        (w//2, h//2, w - w//2, h - h//2)
+    rois = []
+    # Definiere die Mitte des Bildes
+    mid_x, mid_y = w // 2, h // 2
+    # Vier Viertel mit Padding (achte auf Bildgrenzen)
+    coords = [
+        (max(0, 0 - pad), max(0, 0 - pad), min(mid_x + pad, w), min(mid_y + pad, h)),
+        (max(mid_x - pad, 0), max(0 - pad, 0), min(w, w), min(mid_y + pad, h)),
+        (max(0 - pad, 0), max(mid_y - pad, 0), min(mid_x + pad, w), min(h, h)),
+        (max(mid_x - pad, 0), max(mid_y - pad, 0), min(w, w), min(h, h))
     ]
+    for (x1, y1, x2, y2) in coords:
+        rois.append((x1, y1, x2 - x1, y2 - y1))
     return rois
 
 def process_image(image_path: str) -> dict:
@@ -40,16 +46,12 @@ def process_image(image_path: str) -> dict:
         # d) Morphologische Operationen zum Rauschentfernen
         kernel = np.ones((2, 2), np.uint8)
         image_processed = cv2.morphologyEx(image_thresh, cv2.MORPH_OPEN, kernel, iterations=3)
-
-        
-        # Optional: Vorverarbeitetes Bild zur Inspektion speichern
-        cv2.imwrite("processed_image.jpg", image_processed)
         
         # Segmentierung: Finde ROIs (Regionen) im vorverarbeiteten Bild
-        rois = quarter_image(image_processed)
+        rois = quarter_image_with_padding(image_processed)
         
         # Initialisiere das PaddleOCR-Modell
-        ocr_model = PaddleOCR(use_angle_cls=True, lang="german")
+        ocr_model = PaddleOCR(use_angle_cls=False, lang="german")
         
         magnets = []
         # Erstelle eine Kopie des Originalbildes zur Visualisierung
@@ -64,7 +66,7 @@ def process_image(image_path: str) -> dict:
             cropped_upscaled = cv2.resize(cropped, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LINEAR)
             
             # Führe OCR auf dem zugeschnittenen (und ggf. vergrößerten) Bild aus
-            results = ocr_model.ocr(cropped_upscaled, cls=True)
+            results = ocr_model.ocr(cropped_upscaled, cls=False)
             
             # Da wir den Ausschnitt skaliert haben, müssen wir die Koordinaten der erkannten Boxen anpassen
             for line in results:
