@@ -1,49 +1,11 @@
-// src/App.js
 import React, { useState } from 'react';
+import ImageWithWords from './components/ImageWithWords';
 
 function App() {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
-
-  const parseResponse = (rawData) => {
-    // Remove the <think> block (and its internal newlines/whitespaces)
-    const withoutThink = rawData.replace(/<think>[\s\S]*?<\/think>/g, '');
-  
-    // Locate the JSON block by finding the first '{' and the last '}'
-    const jsonStart = withoutThink.indexOf('{');
-    const jsonEnd = withoutThink.lastIndexOf('}');
-    
-    if (jsonStart === -1 || jsonEnd === -1) {
-      throw new Error('No valid JSON found in response');
-    }
-    
-    // Extract the JSON substring.
-    // This preserves any newlines or spaces that are part of the "sentence" value.
-    const jsonString = withoutThink.substring(jsonStart, jsonEnd + 1);
-    
-    try {
-      const parsed = JSON.parse(jsonString);
-      
-      // Validate expected structure
-      if (parsed && typeof parsed === 'object' && parsed.sentence && Array.isArray(parsed.used_words)) {
-        // Clean up the used_words: remove newlines and extra spaces
-        parsed.used_words = parsed.used_words.map(word => word.replace(/\n/g, '').trim());
-        
-        // The "sentence" field is left untouched so that its newlines/whitespace remain.
-        return parsed;
-      } else {
-        throw new Error('Parsed JSON does not contain the expected keys');
-      }
-    } catch (err) {
-      throw new Error('Failed to parse JSON: ' + err.message);
-    }
-  };
-  
+  const [imagePreview, setImagePreview] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,12 +26,17 @@ function App() {
         return;
       }
   
-      const rawData = await response.text();
-      console.log('Raw response:', rawData);
+      // The response should now be properly formatted JSON directly from the backend
+      const data = await response.json();
+      console.log('Received data:', data);
       
-      const data = parseResponse(rawData);
-      setResult(data);
-      setError(null);
+      if (data.sentence && data.used_words && data.image_base64 && data.ocr_data) {
+        setResult(data);
+        setError(null);
+      } else {
+        setError('Received improperly formatted response');
+        setResult(null);
+      }
       
     } catch (err) {
       console.error('Error:', err);
@@ -78,21 +45,66 @@ function App() {
     }
   };
 
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
+    
+    // Create image preview
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target.result);
+      reader.readAsDataURL(selectedFile);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Image to Sentence Generator</h1>
-      <form onSubmit={handleSubmit}>
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-        <button type="submit">Upload and Generate</button>
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+      <h1>Poetry Magnets App</h1>
+      <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
+        <input type="file" onChange={handleFileChange} accept="image/*" />
+        <button type="submit" disabled={!file}>Generate Sentence</button>
       </form>
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-      {result && (
-        <div>
-          <h2>Generated Sentence</h2>
-          <p><strong>Sentence:</strong> {result.sentence}</p>
-          <p><strong>Used Words:</strong> {result.used_words?.join(', ') || 'No words found'}</p>
-        </div>
-      )}
+      
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+        {/* Image preview before submission */}
+        {imagePreview && !result && (
+          <div style={{ flex: '1', minWidth: '300px' }}>
+            <h2>Selected Image</h2>
+            <img 
+              src={imagePreview} 
+              alt="Selected" 
+              style={{ maxWidth: '100%', border: '1px solid #ccc' }} 
+            />
+          </div>
+        )}
+        
+        {/* Result section */}
+        {result && (
+          <>
+            <div style={{ flex: '1', minWidth: '300px' }}>
+              <h2>Detected Words</h2>
+              <ImageWithWords 
+                imageData={result.image_base64} 
+                ocrData={result.ocr_data} 
+              />
+            </div>
+            <div style={{ flex: '1', minWidth: '300px' }}>
+              <h2>Generated Sentence</h2>
+              <p style={{ fontSize: '18px', fontWeight: 'bold' }}>{result.sentence}</p>
+              <h3>Used Words</h3>
+              <ul>
+                {result.used_words.map((word, index) => (
+                  <li key={index}>{word}</li>
+                ))}
+              </ul>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -39,6 +39,7 @@ async def process_image_run(file: UploadFile = File(...)):
 def generate_sentences_with_ollama(words: list, model: str = "thirdeyeai/DeepSeek-R1-Distill-Qwen-7B-uncensored"):
     prompt = (
         f"Antworte nur auf deutsch. Baue aus diesen Wörtern Sätze: {', '.join(words)}. "
+        "Es dürfen auch Wörter benutzt werden die sich nur so ähnlich anhören wie existierende Wörter, gib mir aber trotzdem als used_words die existierenden Wörter an. "
         "Die Sätze/Wortzusammensetzungen sollen lustig, unhinged und kurz sein. "
         "Bitte antworte im folgenden JSON-Format:\n"
         "{\n"
