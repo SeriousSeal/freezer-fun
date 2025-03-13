@@ -178,8 +178,7 @@ def remove_duplicates_and_subwords(detections):
     
     # Set to track which detections to keep
     to_keep = set(range(len(sorted_detections)))
-    
-    # STRATEGY 1: Direct substring filtering with spatial check
+
     for i in range(len(sorted_detections)):
         if i not in to_keep:
             continue
@@ -188,14 +187,13 @@ def remove_duplicates_and_subwords(detections):
             if i == j or j not in to_keep:
                 continue
                 
-            text_i = sorted_detections[i]["normalized_text"]
-            text_j = sorted_detections[j]["normalized_text"]
+            # Check if box j is almost completely contained within box i
+            containment = calculate_containment(sorted_detections[j], sorted_detections[i])
             
-            # Check if one is a substring of another
-            if text_j in text_i and text_i != text_j:
-                # Verify they have significant overlap (very low threshold to catch more)
-                if calculate_iou(sorted_detections[i], sorted_detections[j]) > 0.1:
-                    to_keep.remove(j)  # Remove the shorter text
+            if containment > 0.85:  # If 85% or more of the box is contained
+                # Additional check: j's text should be shorter than i's text
+                if len(sorted_detections[j]["normalized_text"]) < len(sorted_detections[i]["normalized_text"]):
+                    to_keep.remove(j)  # Remove the contained subword
                     
     # STRATEGY 2: Text overlap analysis - detect when most characters overlap
     for i in range(len(sorted_detections)):
@@ -446,13 +444,53 @@ def process_image(image_path: str) -> dict:
         
         # Save the images
         cv2.imwrite("annotated_image.jpg", image_with_boxes)
-        cv2.imwrite("debug_filtering.jpg", debug_image)
+        #cv2.imwrite("debug_filtering.jpg", debug_image)
         
         return {"magnets": magnets}
     
     except Exception as e:
         raise Exception("Error processing image: " + str(e))
 
+def create_marked_image(image_path: str, ocr_data: dict, used_words: list) -> bytes:
+    """
+    Create a new image with marked used words from the OCR data.
+    
+    Args:
+        image_path: Path to the original image
+        ocr_data: OCR detection results
+        used_words: List of words that were used in the sentence
+        
+    Returns:
+        bytes: The marked image as bytes
+    """
+    # Read the original image
+    image = cv2.imread(image_path)
+    
+    # Create a copy for drawing
+    marked_image = image.copy()
+    
+    print(f"Used words to mark: {used_words}")
+    print(f"Available words in OCR data: {[m.get('text') for m in ocr_data.get('magnets', [])]}")
+    
+    # Draw rectangles around used words
+    for magnet in ocr_data.get("magnets", []):
+        if magnet.get("text") in used_words:
+            position = magnet.get("position", {})
+            x = position.get("x", 0)
+            y = position.get("y", 0)
+            w = position.get("width", 0)
+            h = position.get("height", 0)
+            
+            print(f"Marking word: {magnet['text']} at position ({x}, {y}, {w}, {h})")
+            
+            # Draw a semi-transparent green rectangle
+            overlay = marked_image.copy()
+            cv2.rectangle(overlay, (x, y), (x + w, y + h), (0, 255, 0), -1)
+            cv2.addWeighted(overlay, 0.3, marked_image, 0.7, 0, marked_image)
+    
+    # Convert the image to bytes
+    _, buffer = cv2.imencode('.png', marked_image)
+    return buffer.tobytes()
 
 # Beispielaufruf:
 if __name__ == "__main__":
