@@ -55,9 +55,7 @@ function App() {
     // Monitor browser zoom level
     const checkZoom = () => {
       const zoomInfo = detectZoom();
-      console.log('Current browser zoom:', zoomInfo.zoom);
       if (zoomInfo.zoom !== 1) {
-        console.log('Browser zoom detected, please reset to 100%');
       }
     };
 
@@ -81,8 +79,6 @@ function App() {
 
   const parseResponse = (rawData) => {
     try {
-      console.log('Parsing response:', rawData);
-      
       // Remove the <think> block and any leading/trailing whitespace
       const withoutThink = rawData.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
       
@@ -94,7 +90,6 @@ function App() {
         }
       } catch (e) {
         // Continue with more robust parsing if direct parse fails
-        console.log('Direct parsing failed, trying to extract JSON');
       }
       
       // Find JSON-like content using regex
@@ -106,7 +101,6 @@ function App() {
       }
       
       const jsonString = jsonMatch[0];
-      console.log('Extracted JSON string:', jsonString);
       
       // Parse the extracted JSON
       const parsed = JSON.parse(jsonString);
@@ -126,25 +120,18 @@ function App() {
         throw new Error('Parsed JSON does not contain the expected structure');
       }
     } catch (err) {
-      console.error('Parse error details:', err);
       throw new Error('Failed to parse response: ' + err.message);
     }
   };
 
   // Add a debugging function to log the results
   const logResults = (data) => {
-    console.log("Complete API response:", data);
-    console.log("OCR data structure:", data.ocr_data);
-    console.log("Detected words:", data.ocr_data?.magnets?.map(m => m.text));
-    console.log("Words used in sentence:", data.used_words);
-    
     // Verify each used word exists in the OCR data
     if (data.used_words && data.ocr_data && data.ocr_data.magnets) {
       data.used_words.forEach(word => {
         const found = data.ocr_data.magnets.some(m => 
           m.text && m.text.toLowerCase() === word.toLowerCase()
         );
-        console.log(`Word "${word}" ${found ? 'found' : 'NOT FOUND'} in OCR data`);
       });
     }
   };
@@ -185,9 +172,6 @@ function App() {
         const encodedImage = data.base64_image.startsWith('data:image') 
           ? data.base64_image 
           : `data:image/jpeg;base64,${data.base64_image}`;
-        
-        console.log('OCR Data:', data.ocr_data);
-        console.log('Used Words:', data.used_words);
         
         setResult({
           sentence: data.sentence,
@@ -446,7 +430,6 @@ function App() {
                 <li 
                   key={index}
                   onClick={() => {
-                    console.log('Word clicked:', word);
                     setHighlightedWord(word === highlightedWord ? null : word);
                   }}
                   style={{

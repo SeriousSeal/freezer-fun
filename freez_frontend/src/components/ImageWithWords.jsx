@@ -119,17 +119,6 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
   const imageRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Debug logging for props
-  useEffect(() => {
-    console.log('ImageWithWords props:', {
-      hasImageData: !!imageData,
-      hasOcrData: !!ocrData,
-      magnets: ocrData?.magnets?.length,
-      usedWords,
-      highlightedWord
-    });
-  }, [imageData, ocrData, usedWords, highlightedWord]);
-
   // Memoize the transform style to prevent unnecessary recalculations
   const transformStyle = useMemo(() => ({
     transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom}px)`,
@@ -156,7 +145,6 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
 
   useEffect(() => {
     if (!imageData) {
-      console.log("Missing image data");
       return;
     }
 
@@ -164,23 +152,18 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
     const img = new Image();
     
     img.onload = () => {
-      console.log("Image loaded successfully");
       setImageLoaded(true);
       setImageError(null);
     };
     
     img.onerror = (error) => {
-      console.error("Error loading image:", error);
       setImageLoaded(false);
       setImageError("Failed to load image");
     };
     
     try {
-      // Use the pre-encoded data URL directly
       img.src = imageData;
-      console.log("Image source set");
     } catch (error) {
-      console.error("Error setting image source:", error);
       setImageError("Invalid image data");
     }
     
@@ -194,11 +177,6 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
   // Draw word boxes on canvas
   useEffect(() => {
     if (!imageLoaded || !ocrData?.magnets || !canvasRef.current) {
-      console.log('Skipping canvas drawing:', {
-        imageLoaded,
-        hasOcrData: !!ocrData,
-        hasCanvas: !!canvasRef.current
-      });
       return;
     }
 
@@ -213,26 +191,6 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
     // Calculate the scale factors
     const scaleX = displayWidth / img.naturalWidth;
     const scaleY = displayHeight / img.naturalHeight;
-
-    console.log('Drawing canvas with dimensions:', {
-      naturalWidth: img.naturalWidth,
-      naturalHeight: img.naturalHeight,
-      displayWidth,
-      displayHeight,
-      scaleX,
-      scaleY,
-      magnetsCount: ocrData.magnets.length,
-      usedWordsCount: usedWords.length
-    });
-
-    // Debug: Log all available words from OCR
-    console.log('Available words from OCR:', ocrData.magnets.map(m => ({
-      text: m.text,
-      confidence: m.confidence
-    })));
-
-    // Debug: Log all used words
-    console.log('Used words to mark:', usedWords);
 
     // Set canvas size to match the natural image size
     canvas.width = img.naturalWidth;
@@ -280,7 +238,6 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
         if (bestMagnet) {
           // Handle exact match
           matchedOcrWords.add(bestMagnet.text);
-          console.log(`Word matched: "${word}" with "${bestMagnet.text}" (score: ${bestScore})`);
           
           const position = bestMagnet.position;
           const points = position.points;
@@ -308,7 +265,6 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
           ctx.stroke();
         } else if (wordParts.length > 0) {
           // Handle constructed word
-          console.log(`Word constructed: "${word}" from parts:`, wordParts);
           
           // Find and mark all parts
           wordParts.forEach(part => {
@@ -348,14 +304,6 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
         }
       }
     });
-
-    // Debug: Check for any used words that weren't found in OCR data
-    const unmatchedWords = usedWords.filter(word => 
-      !ocrData.magnets.some(m => areWordsSimilar(word, m.text))
-    );
-    if (unmatchedWords.length > 0) {
-      console.warn('Words not found in OCR data:', unmatchedWords);
-    }
   }, [imageLoaded, ocrData, usedWords, highlightedWord]);
 
   return (
@@ -403,14 +351,7 @@ const ImageWithWords = React.memo(({ imageData, ocrData, usedWords, zoom = 1, of
               pointerEvents: 'none',
               ...transformStyle
             }}
-            onLoad={() => {
-              console.log('Image loaded with dimensions:', {
-                naturalWidth: imageRef.current.naturalWidth,
-                naturalHeight: imageRef.current.naturalHeight,
-                clientWidth: imageRef.current.clientWidth,
-                clientHeight: imageRef.current.clientHeight
-              });
-            }}
+            onLoad={() => {}}
           />
           <canvas
             ref={canvasRef}
